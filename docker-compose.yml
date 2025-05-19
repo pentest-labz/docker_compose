@@ -1,0 +1,109 @@
+services:
+  orchestrator:
+    build: ../orchestrator-service
+    ports:
+      - "8000:8000"
+    depends_on:
+      - scanner
+      - auth-service
+
+  scanner:
+    build: ../scanner-service
+    ports:
+      - "8001:8001"
+    cap_add:
+      - NET_RAW
+
+  auth-service:
+    build: ../auth-service
+    ports:
+      - "8002:8002"
+    environment:
+      - MONGO_URL=mongodb://mongo:27017/pentestdb
+      - JWT_SECRET=super_secret_key
+    depends_on:
+      - mongo
+
+  orchestrator-ui:
+    build: ../orchestrator-ui
+    ports:
+      - "4000:4000"
+    depends_on:
+      - orchestrator
+
+  mongo:
+    image: mongo:6.0
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+
+  # metasploitable:
+  #   image: tleemcjr/metasploitable2
+  #   container_name: metasploitable
+  #   ports:
+  #     - "21:21"
+  #     - "22:22"
+  #     - "23:23"
+  #     - "80:80"
+  #     - "443:443"
+  #     - "53306:3306"
+  #     - "5900:5900"
+  #     - "6667:6667"
+  #     - "8180:8180"
+  #   stdin_open: true     # keep STDIN open
+  #   tty: true            # allocate TTY
+  #   entrypoint: >
+  #     sh -c "/bin/services.sh && exec tail -f /dev/null"
+  #   restart: unless-stopped
+  
+  
+  # ─────────────── ELK STACK ───────────────
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.13.0
+    ports:
+      - "5044:5044"
+    volumes:
+      - ../logstash/pipeline:/usr/share/logstash/pipeline:ro
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.13.0
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.13.0
+    user: root
+    entrypoint: ["filebeat", "-e", "-strict.perms=false"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ../filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+    depends_on:
+      - logstash
+
+volumes:
+  mongo-data:
+  es-data:
