@@ -1,6 +1,6 @@
 services:
   orchestrator:
-    build: ./orchestrator-service
+    build: ../orchestrator-service
     ports:
       - "8000:8000"
     depends_on:
@@ -10,24 +10,24 @@ services:
       - sql_injection
 
   brute:
-    build: ./bruteforce-service
+    build: ../bruteforce-service
     ports:
       - "5002:5002"
 
   sql_injection:
-    build: ./sql-exploit-service
+    build: ../sql-exploit-service
     ports:
       - "5003:5003"
 
   scanner:
-    build: ./scanner-service
+    build: ../scanner-service
     ports:
       - "8001:8001"
     cap_add:
       - NET_RAW
 
   auth-service:
-    build: ./auth-service
+    build: ../auth-service
     ports:
       - "8002:8002"
     environment:
@@ -37,7 +37,7 @@ services:
       - mongo
 
   orchestrator-ui:
-    build: ./orchestrator-ui
+    build: ../orchestrator-ui
     ports:
       - "4000:4000"
     depends_on:
@@ -92,7 +92,7 @@ services:
     ports:
       - "5044:5044"
     volumes:
-      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ../logstash/pipeline:/usr/share/logstash/pipeline:ro
     depends_on:
       - elasticsearch
 
@@ -112,7 +112,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ../filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
     depends_on:
       - logstash
 
